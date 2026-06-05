@@ -1,43 +1,22 @@
-from sklearn.datasets import load_wine
+from sklearn.datasets import load_digits
 from sklearn.preprocessing import StandardScaler
-from sklearn.mixture import GaussianMixture
-
-import pandas as pd
 import joblib
 import os
+import pandas as pd
 
-# Load Dataset
-wine = load_wine()
+digits = load_digits()
 
-df = pd.DataFrame(
-    wine.data,
-    columns=wine.feature_names
-)
+df = pd.DataFrame(digits.data)
 
-# Scaling
 scaler = StandardScaler()
 
-X_scaled = scaler.fit_transform(df)
+scaler.fit(df)
 
-# GMM Model
-gmm = GaussianMixture(
-    n_components=3,
-    random_state=42
-)
-
-gmm.fit(X_scaled)
-
-# Save
 os.makedirs("models", exist_ok=True)
-
-joblib.dump(
-    gmm,
-    "models/gmm_model.pkl"
-)
 
 joblib.dump(
     scaler,
     "models/scaler.pkl"
 )
 
-print("Model Saved Successfully")
+print("Scaler Saved Successfully")

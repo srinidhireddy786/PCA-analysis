@@ -2,73 +2,61 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-from sklearn.datasets import load_wine
+from sklearn.datasets import load_digits
 from sklearn.preprocessing import StandardScaler
-from sklearn.decomposition import PCA
-from sklearn.mixture import GaussianMixture
+from sklearn.manifold import TSNE
 
 st.set_page_config(
-    page_title="Wine Clustering using GMM",
+    page_title="t-SNE Visualization",
     layout="wide"
 )
 
-st.title("Gaussian Mixture Model Clustering")
+st.title("t-SNE Dimensionality Reduction")
 
-# Load Dataset
-wine = load_wine()
+digits = load_digits()
 
 df = pd.DataFrame(
-    wine.data,
-    columns=wine.feature_names
+    digits.data
 )
 
-st.subheader("Dataset Preview")
+target = digits.target
 
-st.dataframe(df.head())
+st.subheader("Dataset Shape")
 
-# Number of Components
-n_components = st.slider(
-    "Number of Components",
-    2,
-    10,
-    3
-)
+st.write(df.shape)
 
 # Scaling
 scaler = StandardScaler()
 
 X_scaled = scaler.fit_transform(df)
 
-# GMM
-gmm = GaussianMixture(
-    n_components=n_components,
+perplexity = st.slider(
+    "Perplexity",
+    min_value=5,
+    max_value=50,
+    value=30
+)
+
+tsne = TSNE(
+    n_components=2,
+    perplexity=perplexity,
     random_state=42
 )
 
-clusters = gmm.fit_predict(X_scaled)
+X_tsne = tsne.fit_transform(X_scaled)
 
-df["Cluster"] = clusters
+plot_df = pd.DataFrame({
+    "TSNE1": X_tsne[:,0],
+    "TSNE2": X_tsne[:,1],
+    "Digit": target.astype(str)
+})
 
-# PCA for Visualization
-pca = PCA(n_components=2)
-
-pca_result = pca.fit_transform(X_scaled)
-
-plot_df = pd.DataFrame(
-    {
-        "PCA1": pca_result[:,0],
-        "PCA2": pca_result[:,1],
-        "Cluster": clusters
-    }
-)
-
-# Scatter Plot
 fig = px.scatter(
     plot_df,
-    x="PCA1",
-    y="PCA2",
-    color=plot_df["Cluster"].astype(str),
-    title="GMM Clusters"
+    x="TSNE1",
+    y="TSNE2",
+    color="Digit",
+    title="t-SNE Visualization of Digits Dataset"
 )
 
 st.plotly_chart(
@@ -76,55 +64,17 @@ st.plotly_chart(
     use_container_width=True
 )
 
-# Cluster Distribution
-cluster_counts = (
-    df["Cluster"]
-    .value_counts()
-    .sort_index()
-    .reset_index()
-)
-
-cluster_counts.columns = [
-    "Cluster",
-    "Count"
-]
-
-fig2 = px.bar(
-    cluster_counts,
-    x="Cluster",
-    y="Count",
-    title="Cluster Distribution"
-)
-
-st.plotly_chart(
-    fig2,
-    use_container_width=True
-)
-
-# Probability Matrix
-st.subheader(
-    "Cluster Membership Probabilities"
-)
-
-probs = gmm.predict_proba(X_scaled)
+st.subheader("Reduced Dataset")
 
 st.dataframe(
-    pd.DataFrame(probs).head()
+    plot_df.head()
 )
 
-# Cluster Summary
-st.subheader("Cluster Summary")
-
-st.dataframe(
-    df.groupby("Cluster").mean()
-)
-
-# Download
-csv = df.to_csv(index=False)
+csv = plot_df.to_csv(index=False)
 
 st.download_button(
-    "Download Clustered Dataset",
+    "Download t-SNE Dataset",
     csv,
-    "wine_gmm_clusters.csv",
+    "tsne_reduced_data.csv",
     "text/csv"
 )
