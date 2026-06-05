@@ -1,12 +1,15 @@
-from sklearn.datasets import load_digits
+from sklearn.datasets import load_wine
 from sklearn.preprocessing import StandardScaler
 import joblib
 import os
 import pandas as pd
 
-digits = load_digits()
+wine = load_wine()
 
-df = pd.DataFrame(digits.data)
+df = pd.DataFrame(
+    wine.data,
+    columns=wine.feature_names
+)
 
 scaler = StandardScaler()
 
