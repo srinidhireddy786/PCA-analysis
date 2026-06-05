@@ -2,43 +2,36 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-from sklearn.datasets import load_iris
+from sklearn.datasets import load_wine
 from sklearn.preprocessing import StandardScaler
-from sklearn.cluster import DBSCAN
+from sklearn.decomposition import PCA
+from sklearn.mixture import GaussianMixture
 
 st.set_page_config(
-    page_title="DBSCAN Clustering - Iris Dataset",
+    page_title="Wine Clustering using GMM",
     layout="wide"
 )
 
-st.title("DBSCAN Clustering on Iris Dataset")
+st.title("Gaussian Mixture Model Clustering")
 
 # Load Dataset
-iris = load_iris()
+wine = load_wine()
 
 df = pd.DataFrame(
-    iris.data,
-    columns=iris.feature_names
+    wine.data,
+    columns=wine.feature_names
 )
 
 st.subheader("Dataset Preview")
 
 st.dataframe(df.head())
 
-# Parameters
-eps = st.slider(
-    "EPS",
-    0.1,
-    2.0,
-    0.8,
-    0.1
-)
-
-min_samples = st.slider(
-    "Min Samples",
+# Number of Components
+n_components = st.slider(
+    "Number of Components",
     2,
-    15,
-    5
+    10,
+    3
 )
 
 # Scaling
@@ -46,21 +39,36 @@ scaler = StandardScaler()
 
 X_scaled = scaler.fit_transform(df)
 
-# DBSCAN
-model = DBSCAN(
-    eps=eps,
-    min_samples=min_samples
+# GMM
+gmm = GaussianMixture(
+    n_components=n_components,
+    random_state=42
 )
 
-df["Cluster"] = model.fit_predict(X_scaled)
+clusters = gmm.fit_predict(X_scaled)
+
+df["Cluster"] = clusters
+
+# PCA for Visualization
+pca = PCA(n_components=2)
+
+pca_result = pca.fit_transform(X_scaled)
+
+plot_df = pd.DataFrame(
+    {
+        "PCA1": pca_result[:,0],
+        "PCA2": pca_result[:,1],
+        "Cluster": clusters
+    }
+)
 
 # Scatter Plot
 fig = px.scatter(
-    df,
-    x="petal length (cm)",
-    y="petal width (cm)",
-    color=df["Cluster"].astype(str),
-    title="DBSCAN Clusters"
+    plot_df,
+    x="PCA1",
+    y="PCA2",
+    color=plot_df["Cluster"].astype(str),
+    title="GMM Clusters"
 )
 
 st.plotly_chart(
@@ -72,6 +80,7 @@ st.plotly_chart(
 cluster_counts = (
     df["Cluster"]
     .value_counts()
+    .sort_index()
     .reset_index()
 )
 
@@ -92,14 +101,15 @@ st.plotly_chart(
     use_container_width=True
 )
 
-# Noise Points
-noise = (
-    df["Cluster"] == -1
-).sum()
+# Probability Matrix
+st.subheader(
+    "Cluster Membership Probabilities"
+)
 
-st.metric(
-    "Noise Points",
-    noise
+probs = gmm.predict_proba(X_scaled)
+
+st.dataframe(
+    pd.DataFrame(probs).head()
 )
 
 # Cluster Summary
@@ -109,12 +119,12 @@ st.dataframe(
     df.groupby("Cluster").mean()
 )
 
-# Download Results
+# Download
 csv = df.to_csv(index=False)
 
 st.download_button(
     "Download Clustered Dataset",
     csv,
-    "iris_dbscan_clusters.csv",
+    "wine_gmm_clusters.csv",
     "text/csv"
 )

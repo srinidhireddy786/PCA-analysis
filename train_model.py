@@ -1,16 +1,17 @@
-from sklearn.datasets import load_iris
+from sklearn.datasets import load_wine
 from sklearn.preprocessing import StandardScaler
-from sklearn.cluster import DBSCAN
+from sklearn.mixture import GaussianMixture
+
+import pandas as pd
 import joblib
 import os
-import pandas as pd
 
-# Load Iris Dataset
-iris = load_iris()
+# Load Dataset
+wine = load_wine()
 
 df = pd.DataFrame(
-    iris.data,
-    columns=iris.feature_names
+    wine.data,
+    columns=wine.feature_names
 )
 
 # Scaling
@@ -18,20 +19,25 @@ scaler = StandardScaler()
 
 X_scaled = scaler.fit_transform(df)
 
-# DBSCAN
-dbscan = DBSCAN(
-    eps=0.8,
-    min_samples=5
+# GMM Model
+gmm = GaussianMixture(
+    n_components=3,
+    random_state=42
 )
 
-dbscan.fit(X_scaled)
+gmm.fit(X_scaled)
 
-# Save scaler
+# Save
 os.makedirs("models", exist_ok=True)
+
+joblib.dump(
+    gmm,
+    "models/gmm_model.pkl"
+)
 
 joblib.dump(
     scaler,
     "models/scaler.pkl"
 )
 
-print("Training Complete")
+print("Model Saved Successfully")
